@@ -1,6 +1,6 @@
 FROM neo4j:3.3.2
-#EXPOSE 7474
-#EXPOSE 7687
+EXPOSE 7474
+EXPOSE 7687
 
 WORKDIR /var/lib/neo4j/plugins
 RUN wget https://github.com/jbarrasa/neosemantics/releases/download/3.3.0.2/neosemantics-3.3.0.2.jar
