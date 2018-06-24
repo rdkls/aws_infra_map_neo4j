@@ -21,6 +21,10 @@ if [[ -z "$AWS_ACCESS_KEY_ID" ]] ; then
     echo 'AWS_ACCESS_KEY_ID must be set'
     exit 1
 fi
+if [[ -z "$AWS_SESSION_TOKEN" ]] ; then
+    echo 'AWS_SESSION_TOKEN must be set'
+    exit 1
+fi
 
 THE_NEO4J_BASEDIR=/var/lib/neo4j
 
