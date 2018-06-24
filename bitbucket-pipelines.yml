@@ -1,0 +1,11 @@
+
+pipelines:
+  default:
+    - step:
+        services:
+          - docker
+        script:
+          - export IMAGE_NAME=rdkls/aws_infra_map:latest
+          - docker build -t $IMAGE_NAME .
+          - docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
+          - docker push $IMAGE_NAME
