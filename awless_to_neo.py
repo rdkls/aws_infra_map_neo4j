@@ -71,6 +71,9 @@ def correct_file(infile, region):
                 # Replace <cloud-owl:*> with *
                 obj = re.sub("<cloud-owl:([^>]+)>", '"\\1"', obj)
 
+                # Replace <net-owl:*> with *
+                obj = re.sub("<net-owl:([^>]+)>", '"\\1"', obj)
+
                 of.write('%s %s %s .\n' % (sub, pred, obj))
     return outfile
 
@@ -95,6 +98,48 @@ def fix_db():
     d = GraphDatabase.driver('bolt://localhost:7687', auth=get_neo4j_auth())
 
     with d.session() as session:
+        # IAM Roles
+        cypher = "match (n) where n.name =~ '^arn:aws:iam::.*:role.*' set n:Role"
+        session.run(cypher)
+
+        # SNS Topics
+        cypher = "match (n) where n.name =~ '^arn:aws:sns:.*' set n:SNSTopic"
+        session.run(cypher)
+
+        # Grantees
+        cypher = "match ()-[:`cloud:grantee`]->(n) set n:Grantee"
+        session.run(cypher)
+        cypher = "match (n {`cloud:granteeType`: 'CanonicalUser'}) set n:Grantee"
+        session.run(cypher)
+
+        # SGs
+        cypher = "match ()-[:`cloud:securityGroups`]->(n) set n:Securitygroup"
+        session.run(cypher)
+
+        # Subnets
+        cypher = "match (n) where n.uri =~ '^resource:subnet.*' set n:Subnet"
+        session.run(cypher)
+
+        # Subnets
+        cypher = "match (n) where n.uri =~ '.*FirewallRule.*' set n:FirewallRule"
+        session.run(cypher)
+
+        # Routes
+        cypher = "match (n) where n.uri =~ '.*Route.*' set n:Route"
+        session.run(cypher)
+
+        # VPC
+        cypher = "match (n) where n.uri =~ '^resource:vpc-.*' set n:Vpc"
+        session.run(cypher)
+
+        # Volumes
+        cypher = "match (n) where n.uri =~ '^resource:vol-.*' set n:Volume"
+        session.run(cypher)
+
+        # Instances
+        # Incorrectly matches scalinggroup - [apply-on]
+        #cypher = "match (n) where n.uri =~ '^resource:i-.*' set n:Instance"
+        #session.run(cypher)
 
         # Set node labels - based on node props
         res = session.run('match (n) where n.`rdf:type` is not null return n')
