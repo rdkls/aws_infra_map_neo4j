@@ -1,4 +1,5 @@
 #!/bin/bash
+set -m
 
 THE_NEO4J_BASEDIR=/var/lib/neo4j
 
@@ -45,9 +46,11 @@ for i in $( set | grep ^NEO4J_ | awk -F'=' '{print $1}' | sort -rn ); do
     fi
 done
 
+# Start neo4j with console in background
+# so we can load aws data, then later fg it
 neo4j console&
-neo4j_pid=$!
 
+# Wait for neo4j to come up
 neo4j_not_up=true
 while $neo4j_not_up ; do
     sleep 1
@@ -57,7 +60,8 @@ while $neo4j_not_up ; do
     fi
 done
 
-#/bin/bash
+# Load aws data
 /usr/local/bin/awless_to_neo.py
 
-fg $neo4j_pid
+# fg neo4j console
+fg 1
