@@ -12,8 +12,6 @@ THE_NEO4J_BASEDIR=/var/lib/neo4j
 : ${NEO4J_dbms_connector_http_listen__address:=0.0.0.0:7474}
 : ${NEO4J_dbms_connector_https_listen__address:=0.0.0.0:7473}
 : ${NEO4J_dbms_connector_bolt_listen__address:=0.0.0.0:7687}
-: ${NEO4J_ha_host_coordination:=$(hostname):5001}
-: ${NEO4J_ha_host_data:=$(hostname):6001}
 
 # set the neo4j initial password only if you run the database server
 if [ "${NEO4J_AUTH:-}" == "none" ]; then
@@ -47,7 +45,8 @@ for i in $( set | grep ^NEO4J_ | awk -F'=' '{print $1}' | sort -rn ); do
     fi
 done
 
-neo4j start
+neo4j console&
+neo4j_pid=$!
 
 neo4j_not_up=true
 while $neo4j_not_up ; do
@@ -60,3 +59,5 @@ done
 
 #/bin/bash
 /usr/local/bin/awless_to_neo.py
+
+fg $neo4j_pid
