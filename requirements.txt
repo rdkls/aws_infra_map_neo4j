@@ -2,3 +2,4 @@ neo4j-driver==1.6.0
 neotime==1.0.0
 pytz==2018.4
 six==1.11.0
+boto3==1.7.45
