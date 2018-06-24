@@ -24,4 +24,5 @@ RUN apk add vim
 COPY .vimrc /root/
 
 COPY docker-entrypoint.sh /
-ENTRYPOINT /docker-entrypoint.sh
+ENTRYPOINT []
+CMD /docker-entrypoint.sh
