@@ -6,6 +6,8 @@ pipelines:
           - docker
         script:
           - export IMAGE_NAME=rdkls/aws_infra_map:latest
-          - docker build -t $IMAGE_NAME .
+          - export IMAGE_NAME_VERSIONED=rdkls/aws_infra_map:$DOCKER_HUB_VERSION
+          - docker build -t $IMAGE_NAME_VERSIONED -t $IMAGE_NAME .
           - docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
+          - docker push $IMAGE_NAME_VERSIONED
           - docker push $IMAGE_NAME
