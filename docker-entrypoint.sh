@@ -1,6 +1,27 @@
 #!/bin/bash
 set -m
 
+if [[ -z "$AWS_DEFAULT_REGION$AWS_TO_NEO4J_LIMIT_REGION" ]] ; then
+    echo 'AWS_DEFAULT_REGION or AWS_TO_NEO4J_LIMIT_REGION must be set'
+    exit 1
+fi
+# Be kind and set default region if only limit was specified
+if [[ -z $AWS_DEFAULT_REGION ]] ; then
+    export AWS_DEFAULT_REGION=$AWS_TO_NEO4J_LIMIT_REGION
+fi
+if [[ -z "$NEO4J_AUTH" ]] ; then
+    echo 'NEO4J_AUTH must be set to user/pass'
+    exit 1
+fi
+if [[ -z "$AWS_SECRET_ACCESS_KEY" ]] ; then
+    echo 'AWS_SECRET_ACCESS_KEY must be set'
+    exit 1
+fi
+if [[ -z "$AWS_ACCESS_KEY_ID" ]] ; then
+    echo 'AWS_ACCESS_KEY_ID must be set'
+    exit 1
+fi
+
 THE_NEO4J_BASEDIR=/var/lib/neo4j
 
 # Custom settings for dockerized neo4j
