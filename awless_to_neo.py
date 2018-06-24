@@ -12,24 +12,10 @@ import subprocess
 
 AWLESS_DATABASE_PATH = '/root/.awless/aws/rdf/default/%s/'
 CORRECTED_SUFFIX = '.corrected.nt'
-NEO4J_PASSWORD_DEFAULT = 'awsmap'
 
-def get_neo4j_password():
-    return os.environ.get('NEO4J_PASSWORD', NEO4J_PASSWORD_DEFAULT)
-
-def set_neo4j_password():
-    try:
-        d = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', 'neo4j'))
-        print 'don'
-    except ServiceUnavailable:
-        # must have already set ...
-        return
-
-    with d.session() as session:
-        print 't2'
-        session.run("CALL dbms.changePassword('%s')" % get_neo4j_password())
-        print 'd2'
-    print 'set neo4j password to "%s"' % get_neo4j_password()
+def get_neo4j_auth():
+    (user, password) = os.environ.get('NEO4J_AUTH').split('/')
+    return (user, password)
 
 def correct_file(infile):
     outfile = infile + CORRECTED_SUFFIX
@@ -60,8 +46,7 @@ def correct_file(infile):
 
 
 def load_to_neo4j(files):
-    set_neo4j_password()
-    d = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', get_neo4j_password()))
+    d = GraphDatabase.driver('bolt://localhost:7687', auth=get_neo4j_auth())
     with d.session() as session:
         for fn in files:
             res = session.run("call semantics.importRDF('file:///%s', 'N-Triples', {shortenUrls: false})" % fn)

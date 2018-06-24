@@ -1,6 +1,4 @@
-#!/bin/bash
-
-THE_NEO4J_BASEDIR=/var/lib/neo4j
+#!/bin/bash -eu
 
 # Custom settings for dockerized neo4j
 : ${NEO4J_dbms_tx__log_rotation_retention__policy:=100M size}
@@ -16,46 +14,36 @@ THE_NEO4J_BASEDIR=/var/lib/neo4j
 : ${NEO4J_ha_host_data:=$(hostname):6001}
 
 # set the neo4j initial password only if you run the database server
-if [ "${NEO4J_AUTH:-}" == "none" ]; then
-    NEO4J_dbms_security_auth__enabled=false
-elif [[ "${NEO4J_AUTH:-}" == neo4j/* ]]; then
-    password="${NEO4J_AUTH#neo4j/}"
-    if [ "${password}" == "neo4j" ]; then
-        echo "Invalid value for password. It cannot be 'neo4j', which is the default."
+if [ "${cmd}" == "neo4j" ]; then
+    if [ "${NEO4J_AUTH:-}" == "none" ]; then
+        NEO4J_dbms_security_auth__enabled=false
+    elif [[ "${NEO4J_AUTH:-}" == neo4j/* ]]; then
+        password="${NEO4J_AUTH#neo4j/}"
+        if [ "${password}" == "neo4j" ]; then
+            echo "Invalid value for password. It cannot be 'neo4j', which is the default."
+            exit 1
+        fi
+        # Will exit with error if users already exist (and print a message explaining that)
+        bin/neo4j-admin set-initial-password "${password}" || true
+    elif [ -n "${NEO4J_AUTH:-}" ]; then
+        echo "Invalid value for NEO4J_AUTH: '${NEO4J_AUTH}'"
         exit 1
     fi
-    # Will exit with error if users already exist (and print a message explaining that)
-    $THE_NEO4J_BASEDIR/bin/neo4j-admin set-initial-password "${password}" || true
-elif [ -n "${NEO4J_AUTH:-}" ]; then
-    echo "Invalid value for NEO4J_AUTH: '${NEO4J_AUTH}'"
-    exit 1
 fi
 
 # list env variables with prefix NEO4J_ and create settings from them
-#unset NEO4J_AUTH
-unset NEO4J_SHA256 NEO4J_TARBALL
+unset NEO4J_AUTH NEO4J_SHA256 NEO4J_TARBALL
 for i in $( set | grep ^NEO4J_ | awk -F'=' '{print $1}' | sort -rn ); do
     setting=$(echo ${i} | sed 's|^NEO4J_||' | sed 's|_|.|g' | sed 's|\.\.|_|g')
     value=$(echo ${!i})
     if [[ -n ${value} ]]; then
-        if grep -q -F "${setting}=" $THE_NEO4J_BASEDIR/conf/neo4j.conf; then
+        if grep -q -F "${setting}=" conf/neo4j.conf; then
             # Remove any lines containing the setting already
-            sed --in-place "/${setting}=.*/d" $THE_NEO4J_BASEDIR/conf/neo4j.conf
+            sed --in-place "/${setting}=.*/d" conf/neo4j.conf
         fi
         # Then always append setting to file
-        echo "${setting}=${value}" >> $THE_NEO4J_BASEDIR/conf/neo4j.conf
+        echo "${setting}=${value}" >> conf/neo4j.conf
     fi
 done
 
-neo4j start
-
-neo4j_not_up=true
-while $neo4j_not_up ; do
-    sleep 1
-    echo "waiting for neo4j to start ..."
-    if [[ 0 -eq `nc -z localhost 7474; echo $?` ]] ; then 
-        neo4j_not_up=false
-    fi
-done
-
-/bin/bash
+exec neo4j start
