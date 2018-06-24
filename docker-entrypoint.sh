@@ -58,4 +58,5 @@ while $neo4j_not_up ; do
     fi
 done
 
-/bin/bash
+#/bin/bash
+/usr/local/bin/awless_to_neo.py

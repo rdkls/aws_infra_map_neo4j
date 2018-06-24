@@ -12,14 +12,12 @@ RUN wget https://github.com/wallix/awless/releases/download/v0.1.11/awless-linux
 RUN tar -xzvf awless-linux-amd64.tar.gz
 
 # Install awless_to_neo
-RUN mkdir -p /opt/awless_to_neo
-WORKDIR /opt/awless_to_neo
-COPY awless_to_neo.py .
-COPY requirements.txt .
+COPY awless_to_neo.py /usr/local/bin
 RUN apk update
 RUN apk add py2-pip
 RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+COPY requirements.txt /tmp
+RUN pip install -r /tmp/requirements.txt
 
 # Dev stuff
 RUN apk add vim
