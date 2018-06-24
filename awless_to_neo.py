@@ -93,15 +93,31 @@ def load_to_neo4j(filenames):
 def fix_db():
     # Fix up the db for niceess - add node labels, set names
     d = GraphDatabase.driver('bolt://localhost:7687', auth=get_neo4j_auth())
+
     with d.session() as session:
-        # Set node labels
+
+        # Set node labels - based on node props
         res = session.run('match (n) where n.`rdf:type` is not null return n')
-        s = set()
+        set_of_labels_to_apply = set()
         for record in res:
-            s.add(record['n']['rdf:type'])
-        for t in s:
-            c = 'match (n) where n.`rdf:type`="%s" set n:%s' % (t, t)
-            session.run(c)
+            set_of_labels_to_apply.add(record['n']['rdf:type'])
+        for label in set_of_labels_to_apply:
+            cypher = 'match (n) where n.`rdf:type`="%s" set n:%s' % (label, label)
+            session.run(cypher)
+
+        # Set node labels - based on relationship props
+        cypher = 'match ()-[r:`rdf:type`]->(t) return t'
+        res = session.run(cypher)
+        set_of_labels_to_apply = set()
+        for record in res:
+            set_of_labels_to_apply.add(record['t']['uri'])
+
+        for rdf_type in set_of_labels_to_apply:
+            # Do the updates
+            # node label just remove anything before colon
+            label = re.sub('.*:([^:]*)', '\\1', rdf_type)
+            cypher = 'match (n)-[:`rdf:type`]->(t {uri: "%s"}) set n:%s' % (rdf_type, label)
+            session.run(cypher)
 
         # Set node names
         # from various properties, in descending order of preference
@@ -126,12 +142,19 @@ if '__main__' == __name__:
     parser.add_argument('--region', help='limit to one aws region')
     parser.add_argument('--infile', '-i', help='one awless n-triple db file to run with')
     parser.add_argument('--skip-sync', '-s', action='store_true', help='skip awless sync; operate on local db files only')
+    parser.add_argument('--fix-db', action='store_true', help='only fix db')
     parser.add_argument('--verbose', '-v', action='store_true')
     args = parser.parse_args()
+
+    if args.fix_db:
+        fix_db()
+        import sys;sys.exit(0) # don't tell arjen
 
     if not args.infile:
         if args.region:
             regions = [args.region]
+        elif os.environ.get('AWS_TO_NEO4J_LIMIT_REGION'):
+            regions = [os.environ.get('AWS_TO_NEO4J_LIMIT_REGION')]
         else:
             regions = get_all_regions()
 
