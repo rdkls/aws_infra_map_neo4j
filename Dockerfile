@@ -20,8 +20,8 @@ COPY requirements.txt /tmp
 RUN pip install -r /tmp/requirements.txt
 
 # Dev stuff
-RUN apk add vim
-COPY .vimrc /root/
+#RUN apk add vim
+#COPY .vimrc /root/
 
 COPY docker-entrypoint.sh /
 ENTRYPOINT []
