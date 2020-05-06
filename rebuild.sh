@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 NEO4J_AUTH='neo4j/paper'
 
-if [ -z "$AWS_SECRET_ACCESS_KEY"] ; then
+if [ -z "$AWS_SECRET_ACCESS_KEY" ] ; then
 	AWS_SECRET_ACCESS_KEY=`grep aws_secret_access_key ~/.aws/credentials | head -n1 | cut -d'=' -f 2 | sed 's/ //g'`
 	AWS_ACCESS_KEY_ID=`grep aws_access_key_id ~/.aws/credentials | head -n1 | cut -d'=' -f 2 | sed 's/ //g'`
 	AWS_SESSION_TOKEN=`grep aws_session_token ~/.aws/credentials | head -n1 | cut -d'=' -f 2 | sed 's/ //g'`
