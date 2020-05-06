@@ -19,13 +19,14 @@ docker run
 
 
 # Environment Variables
-| Name | Format | Example | Purpose
-|-|-|
+|Name|Format|Example|Purpose
+|-|-|-|-|
 | NEO4J_AUTH | user/pass | neo4j/happyjoe4u | Sets initial admin creds for neo4j
 | AWS_DEFAULT_REGION | string | us-east-1 | DEFAULT AWS region  (note if AWS_TO_NEO4J_LIMIT_REGION is not set all regions will still be scanned)
 | AWS_TO_NEO4J_LIMIT_REGION | string | us-east-1 | LIMIT to one AWS region (default is all)
 
 The rest AWS_* are standard AWS auth credentials, used by awless to pull your config data
+
 Note only read permissions are necessary (and recommended)
 
 NEO4J_AUTH has format user/pass

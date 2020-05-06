@@ -2,7 +2,7 @@ NEO4J_AUTH='neo4j/paper'
 
 docker rm -f neo4j_awless 2>/dev/null
 
-docker build --tag aws_infra_map:latest .
+docker build --tag aws_infra_map_neo4j:latest .
 
 docker run -ti \
     --name neo4j_awless \
@@ -13,4 +13,4 @@ docker run -ti \
     --env NEO4J_AUTH=$NEO4J_AUTH \
     -p 80:7474 \
     -p 7687:7687 \
-    aws_infra_map
+    aws_infra_map_neo4j
