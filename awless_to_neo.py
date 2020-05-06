@@ -26,6 +26,7 @@
 
 from neo4j.exceptions import ServiceUnavailable
 from neo4j.v1 import GraphDatabase
+from pprint import pprint
 import argparse
 import boto3
 import json
@@ -34,21 +35,29 @@ import re
 import subprocess
 import neobolt
 
+DEBUG = True
 AWLESS_DATABASE_PATH = '/root/.awless/aws/rdf/default/%s/'
 CORRECTED_SUFFIX = '.corrected.nt'
 THE_NEO4J_BASEDIR='/var/lib/neo4j'
+
+THE_NEO4J_BASEDIR_DEBUG = '/Users/nick.doyle/ws/3rdparty/neo4j/aws_infra_map'
+AWLESS_DATABASE_PATH_DEBUG = '/Users/nick.doyle/.awless/aws/rdf/default/%s/'
 
 def get_neo4j_auth():
     (user, password) = os.environ.get('NEO4J_AUTH').split('/')
     return (user, password)
 
-def correct_file(infile, region):
+def correct_file(infile, region, debug):
     # Output file will be prefix of the input file + '.corrected.nt'
     # In the neo4j import dir
     # (neo4j security requirement in order to be able to import)
     (prefix, suffix) = os.path.splitext(os.path.split(infile)[1])
     outfile = region + '-' + prefix + CORRECTED_SUFFIX
-    outfile = os.path.join(THE_NEO4J_BASEDIR, 'import', outfile)
+    if debug:
+        neo4j_basedir = THE_NEO4J_BASEDIR_DEBUG
+    else:
+        neo4j_basedir = THE_NEO4J_BASEDIR
+    outfile = os.path.join(neo4j_basedir, 'import', outfile)
 
     with open(outfile, 'w') as of:
         with open(infile, 'r') as f:
@@ -104,50 +113,101 @@ def load_to_neo4j(filenames):
             # see https://github.com/jbarrasa/neosemantics
             print 'load file %s' % fn
             cypher = "call n10s.rdf.import.fetch('file:///%s', 'N-Triples', {shortenUrls: false})" % fn
-            res = session.run(cypher)
+            with session.begin_transaction() as tx:
+                res = tx.run(cypher)
+                res.consume()
+                for r in res:
+                    continue
+            print('... loaded')
+
 
 def fix_db():
     # Fix up the db for niceess - add node labels, set names
     d = GraphDatabase.driver('bolt://127.0.0.1:7687', auth=get_neo4j_auth(), encrypted=False)
-
+    pprint(d)
     with d.session() as session:
-        # IAM Roles
-        cypher = "match (n) where n.name =~ '^arn:aws:iam::.*:role.*' set n:Role"
+        # Remove generic 'Resource:' label
+        cypher = """
+            match (n)
+            where n:Resource
+            CALL apoc.create.removeLabels(n, ['Resource'])
+            YIELD node
+            RETURN node
+        """
         session.run(cypher)
 
-        # SNS Topics
-        cypher = "match (n) where n.name =~ '^arn:aws:sns:.*' set n:SNSTopic"
+        # Strip redundant resource: on names & uris
+        # (we hacked this on before so RDF import didn't fail)
+        cypher = """
+            match (n)
+            CALL apoc.create.setProperty(n,'name', replace(n.name, 'resource:', ''))
+            YIELD node
+            RETURN node
+        """
         session.run(cypher)
 
-        # Grantees
-        cypher = "match ()-[:`cloud:grantee`]->(n) set n:Grantee"
-        session.run(cypher)
-        cypher = "match (n {`cloud:granteeType`: 'CanonicalUser'}) set n:Grantee"
-        session.run(cypher)
-
-        # SGs
-        cypher = "match ()-[:`cloud:securityGroups`]->(n) set n:Securitygroup"
+        cypher = """
+            match (n)
+            CALL apoc.create.setProperty(n, 'uri', replace(n.uri, 'resource:', ''))
+            YIELD node
+            RETURN node
+        """
         session.run(cypher)
 
-        # Subnets
-        cypher = "match (n) where n.uri =~ '^resource:subnet.*' set n:Subnet"
+
+        # Set label based on ns1__type
+        cypher = """
+            match (n)
+            where not labels(n)
+            CALL apoc.create.addLabels(n, [n.ns1__type])
+            YIELD node
+            RETURN node
+        """
         session.run(cypher)
 
-        # Subnets
-        cypher = "match (n) where n.uri =~ '.*FirewallRule.*' set n:FirewallRule"
+        # Set label based on ns0__type
+        cypher = """
+            match (n)
+            where not labels(n)
+            CALL apoc.create.addLabels(n, [n.ns0__type])
+            YIELD node
+            RETURN node
+        """
         session.run(cypher)
 
-        # Routes
-        cypher = "match (n) where n.uri =~ '.*Route.*' set n:Route"
+        # Set Name
+        cypher = """
+            match (n)
+            CALL apoc.create.setProperty(n, 'name', n.ns1__name)
+            YIELD node
+            RETURN node
+        """
+        session.run(cypher)
+        cypher = """
+            match (n)
+            CALL apoc.create.setProperty(n, 'name', n.ns0__name)
+            YIELD node
+            RETURN node
+        """
         session.run(cypher)
 
-        # VPC
-        cypher = "match (n) where n.uri =~ '^resource:vpc-.*' set n:Vpc"
-        session.run(cypher)
+        session.run("match (n) where n.name =~ '^arn:aws:iam::.*:role.*' set n:Role")
+        session.run("match (n) where n.name =~ '^arn:aws:sns:.*' set n:SNSTopic")
+        session.run("match ()-[:`cloud:grantee`]->(n) set n:Grantee")
+        session.run("match (n {`cloud:granteeType`: 'CanonicalUser'}) set n:Grantee")
+        session.run("match ()-[:`cloud:securityGroups`]->(n) set n:Securitygroup")
+        session.run("match (n) where n.uri =~ '^subnet.*' set n:Subnet")
+        session.run("match (n) where n.uri =~ '.*FirewallRule.*' set n:FirewallRule")
+        session.run("match (n) where n.uri =~ '.*Route.*' set n:Route")
+        session.run("match (n) where n.uri =~ '^vpc-.*' set n:Vpc")
+        session.run("match (n) where n.uri =~ '^vol-.*' set n:Volume")
+        session.run("match (n)<-[:ns0__role]-() where not labels(n) set n:Role")
+        session.run("match (n)<-[:ns0__location]-(:Image) where not labels(n) set n:ImageLocation")
 
-        # Volumes
-        cypher = "match (n) where n.uri =~ '^resource:vol-.*' set n:Volume"
-        session.run(cypher)
+        # Not super sure on "Grantee"
+        session.run("match (n) where n.ns0__granteeType = 'CanonicalUser' and not labels(n) set n: Grantee")
+        session.run("match (n)<-[:ns0__grantee]-() where not labels(n) set n:Grantee")
+
 
         # Instances
         # Incorrectly matches scalinggroup - [apply-on]
@@ -200,11 +260,14 @@ if '__main__' == __name__:
     parser.add_argument('--region', help='limit to one aws region')
     parser.add_argument('--infile', '-i', help='one awless n-triple db file to run with')
     parser.add_argument('--skip-sync', '-s', action='store_true', help='skip awless sync; operate on local db files only')
-    parser.add_argument('--fix-db', action='store_true', help='only fix db')
+    parser.add_argument('--only-fix-db', action='store_true', help='only fix db')
     parser.add_argument('--verbose', '-v', action='store_true')
+    parser.add_argument('--debug', action='store_true')
+
     args = parser.parse_args()
 
-    if args.fix_db:
+    if args.only_fix_db:
+        print('i only fix the db!')
         fix_db()
         import sys;sys.exit(0) # don't tell arjen
 
@@ -223,16 +286,20 @@ if '__main__' == __name__:
 
             # Correct all files
             corrected_filepaths = []
+            if args.debug:
+                awless_database_path = AWLESS_DATABASE_PATH_DEBUG
+            else:
+                awless_database_path = AWLESS_DATABASE_PATH
             try:
-                fns = os.listdir(AWLESS_DATABASE_PATH % region)
+                fns = os.listdir(awless_database_path % region)
             except OSError:
-                print "can't load files from %s, skipping ..." % AWLESS_DATABASE_PATH % region
+                print "can't load files from %s, skipping ..." % awless_database_path % region
                 continue
 
             for fn in fns:
                 if not fn.endswith(CORRECTED_SUFFIX):
-                    fullpath = os.path.join(AWLESS_DATABASE_PATH % region, fn)
-                    corrected_filepaths.append(correct_file(fullpath, region))
+                    fullpath = os.path.join(awless_database_path % region, fn)
+                    corrected_filepaths.append(correct_file(fullpath, region, args.debug))
             if args.verbose:
                 print 'corrected files:'
                 from pprint import prpint;pprint(corrected_filepaths)
