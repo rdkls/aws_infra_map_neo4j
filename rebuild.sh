@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 NEO4J_AUTH='neo4j/paper'
 
 docker rm -f neo4j_awless 2>/dev/null
