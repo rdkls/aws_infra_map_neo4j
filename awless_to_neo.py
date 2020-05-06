@@ -8,7 +8,7 @@
 # awless uses standard aws env vars to do its thing; just set these as desired before running
 #
 # Examples:
-# 
+#
 # Do it all
 # ./awless_to_neo.py
 #
@@ -32,6 +32,7 @@ import json
 import os
 import re
 import subprocess
+import neobolt
 
 AWLESS_DATABASE_PATH = '/root/.awless/aws/rdf/default/%s/'
 CORRECTED_SUFFIX = '.corrected.nt'
@@ -80,22 +81,34 @@ def correct_file(infile, region):
 
 def load_to_neo4j(filenames):
     # Load the corrected rdj files from neo4j/import, into the db
-    d = GraphDatabase.driver('bolt://localhost:7687', auth=get_neo4j_auth())
+    d = GraphDatabase.driver('bolt://127.0.0.1:7687', auth=get_neo4j_auth(), encrypted=False)
     with d.session() as session:
         # Create required indexes
-        cypher = 'create index on :Resource(uri)'
-        session.run(cypher)
+        cypher = 'CREATE CONSTRAINT n10s_unique_uri ON (r:Resource) ASSERT r.uri IS UNIQUE'
+        try:
+            session.run(cypher)
+        except neobolt.exceptions.ClientError:
+            # Index already exists
+            pass
+
+        # Init graph config for semantics plugin
+        cypher = 'CALL n10s.graphconfig.init()'
+        try:
+            session.run(cypher)
+        except neobolt.exceptions.ClientError:
+            # Index already exists
+            pass
 
         for fn in filenames:
             # use jbarrasa's plugin to load the now-correct rdf into neo4j
             # see https://github.com/jbarrasa/neosemantics
             print 'load file %s' % fn
-            cypher = "call semantics.importRDF('file:///%s', 'N-Triples', {shortenUrls: false})" % fn
+            cypher = "call n10s.rdf.import.fetch('file:///%s', 'N-Triples', {shortenUrls: false})" % fn
             res = session.run(cypher)
 
 def fix_db():
     # Fix up the db for niceess - add node labels, set names
-    d = GraphDatabase.driver('bolt://localhost:7687', auth=get_neo4j_auth())
+    d = GraphDatabase.driver('bolt://127.0.0.1:7687', auth=get_neo4j_auth(), encrypted=False)
 
     with d.session() as session:
         # IAM Roles
