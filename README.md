@@ -1,7 +1,12 @@
 # AWS Infra Map
-Load your AWS environment into neo4j db
+Load your AWS environment into a Neo4j DB
 
-Example usage:
+# Usage
+
+- `run.sh` will probably do what you want
+- `run-docker-local-build.sh` will build docker image locally and run that
+
+otherwise
 
 ```
 docker run
@@ -12,9 +17,9 @@ docker run
     --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     --env AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN \
-    -p 80:7474 \
+    -p 7474:7474 \
     -p 7687:7687 \
-    aws_infra_map_neo4j
+    rdkls/aws_infra_map_neo4j
 ```
 
 
@@ -39,11 +44,11 @@ and sets initial admin creds for neo4j
 # Example run
 
 ```
-mbp:~ nick - mocorp$ docker run -d     --name aws_mocorp_infra_map     --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY     --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID     --env AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN          --env NEO4J_AUTH=$NEO4J_AUTH     -p 80:7474     -p 7687:7687   --env AWS_DEFAULT_REGION=ap-southeast-2  rdkls/aws_infra_map
+mbp:~ nick - mocorp$ docker run -d     --name aws_mocorp_infra_map     --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY     --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID     --env AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN          --env NEO4J_AUTH=$NEO4J_AUTH     -p 7474:7474     -p 7687:7687   --env AWS_DEFAULT_REGION=ap-southeast-2  rdkls/aws_infra_map
 869f1634c1267e04ccb69f3cb3eed6c09779d4dcd0e1ade5c73a4e17106a40cf
 mbp:~ nick - mocorp$ docker logs -f aws_mocorp_infra_map
+
 Changed password for user 'neo4j'.
-Active database: graph.db
 Directories in use:
   home:         /var/lib/neo4j
   config:       /var/lib/neo4j/conf
@@ -54,13 +59,21 @@ Directories in use:
   certificates: /var/lib/neo4j/certificates
   run:          /var/lib/neo4j/run
 Starting Neo4j.
+2020-05-06 15:40:35.196+0000 WARN  Use of deprecated setting dbms.connectors.default_listen_address. It is replaced by dbms.default_listen_address
+2020-05-06 15:40:35.198+0000 WARN  Use of deprecated setting port propagation. port 7687 is migrated from dbms.connector.bolt.listen_address to dbms.connector.bolt.advertised_address.
+2020-05-06 15:40:35.199+0000 WARN  Use of deprecated setting port propagation. port 7474 is migrated from dbms.connector.http.listen_address to dbms.connector.http.advertised_address.
+2020-05-06 15:40:35.200+0000 WARN  Use of deprecated setting port propagation. port 7473 is migrated from dbms.connector.https.listen_address to dbms.connector.https.advertised_address.
+2020-05-06 15:40:35.200+0000 WARN  Unrecognized setting. No declared setting with name: HOME
+2020-05-06 15:40:35.200+0000 WARN  Unrecognized setting. No declared setting with name: AUTH
+2020-05-06 15:40:35.200+0000 WARN  Unrecognized setting. No declared setting with name: EDITION
+2020-05-06 15:40:35.201+0000 WARN  Unrecognized setting. No declared setting with name: wrapper.java.additional
+2020-05-06 15:40:35.206+0000 INFO  ======== Neo4j 4.0.0 ========
+2020-05-06 15:40:35.210+0000 INFO  Starting...
 waiting for neo4j to start ...
 waiting for neo4j to start ...
-2018-06-25 08:05:41.799+0000 INFO  ======== Neo4j 3.3.2 ========
-2018-06-25 08:05:41.854+0000 INFO  Starting...
-waiting for neo4j to start ...
-2018-06-25 08:05:43.448+0000 INFO  Bolt enabled on 0.0.0.0:7687.
-waiting for neo4j to start ...
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
 waiting for neo4j to start ...
 waiting for neo4j to start ...
 waiting for neo4j to start ...
@@ -70,11 +83,15 @@ waiting for neo4j to start ...
 waiting for neo4j to start ...
 waiting for neo4j to start ...
 waiting for neo4j to start ...
-2018-06-25 08:05:53.414+0000 INFO  Started.
 waiting for neo4j to start ...
-2018-06-25 08:05:54.591+0000 INFO  Remote interface available at http://localhost:7474/
 waiting for neo4j to start ...
-awless sync for region ap-south-1
+2020-05-06 15:40:48.039+0000 INFO  Called db.clearQueryCaches(): Query cache already empty.
+2020-05-06 15:40:48.149+0000 INFO  Bolt enabled on 0.0.0.0:7687.
+2020-05-06 15:40:48.149+0000 INFO  Started.
+waiting for neo4j to start ...
+2020-05-06 15:40:49.025+0000 INFO  Remote interface available at http://localhost:7474/
+waiting for neo4j to start ...
+awless sync for region ap-southeast-2
 
  █████╗  ██╗    ██╗ ██╗     ██████  ██████╗ ██████╗
 ██╔══██╗ ██║    ██║ ██║     ██╔══╝  ██╔═══╝ ██╔═══╝
@@ -91,50 +108,28 @@ All done. Enjoy!
 You can review and configure awless with `awless config`
 
 Now running: `awless sync`
-[info]    running sync for region 'ap-south-1'
-[info]    -> cloudformation: 0 stack
-[info]    -> dns: 0 record, 1 zone
+[info]    running sync for region 'ap-southeast-2'
+[info]    -> lambda: 73 functions
+[info]    -> dns: 13 zones, 0 record
+[info]    -> storage: 0 s3object, 19 buckets
 [info]    -> cdn: 0 distribution
-[info]    -> lambda: 0 function
-[info]    -> access: 1 mfadevice, 1 group, 36 roles, 11 policies, 5 accesskeys, 10 instanceprofiles, 4 users
-[info]    -> infra: 0 classicloadbalancer, 0 launchconfiguration, 1 securitygroup, 0 containertask, 1 vpc, 2 availabilityzones, 0 image, 0 importimagetask, 0 snapshot, 0 networkinterface, 0 targetgroup, 0 database, 1 internetgateway, 0 natgateway, 1 routetable, 0 loadbalancer, 0 scalinggroup, 0 containercluster, 0 containerinstance, 0 certificate, 0 instance, 0 elasticip, 2 subnets, 0 dbsubnetgroup, 0 scalingpolicy, 0 container, 0 keypair, 0 volume, 0 listener, 0 repository
-awless sync for region eu-west-1
+[info]    -> access: 0 accesskey, 157 roles, 0 group, 1 mfadevice, 2 instanceprofiles, 37 policies, 0 user
+[info]    -> infra: 0 image, 0 container, 0 containerinstance, 3 vpcs, 3 natgateways, 3 volumes, 15 targetgroups, 0 launchconfiguration, 25 certificates, 1 keypair, 0 snapshot, 198 networkinterfaces, 4 listeners, 0 scalingpolicy, 3 containerclusters, 139 securitygroups, 3 internetgateways, 0 classicloadbalancer, 15 loadbalancers, 0 database, 9 routetables, 3 availabilityzones, 3 elasticips, 3 instances, 0 importimagetask, 8 repositories, 131 containertasks, 12 subnets, 3 dbsubnetgroups, 0 scalinggroup
+[info]    -> cloudformation: 0 stack
+[info]    -> messaging: 31 queues, 40 subscriptions, 36 topics
+[info]    sync took 7.500982132s
 
-load file /var/lib/neo4j/import/eu-west-1-lambda.corrected.nt
-load file /var/lib/neo4j/import/eu-west-1-infra.corrected.nt
-load file /var/lib/neo4j/import/eu-west-1-cloudformation.corrected.nt
-load file /var/lib/neo4j/import/eu-west-1-messaging.corrected.nt
-load file /var/lib/neo4j/import/eu-west-1-storage.corrected.nt
-awless sync for region ap-northeast-2
-
-load file /var/lib/neo4j/import/ap-northeast-2-lambda.corrected.nt
-load file /var/lib/neo4j/import/ap-northeast-2-infra.corrected.nt
-load file /var/lib/neo4j/import/ap-northeast-2-cloudformation.corrected.nt
-load file /var/lib/neo4j/import/ap-northeast-2-messaging.corrected.nt
-load file /var/lib/neo4j/import/ap-northeast-2-storage.corrected.nt
-awless sync for region ap-northeast-1
-
-load file /var/lib/neo4j/import/ap-northeast-1-lambda.corrected.nt
-load file /var/lib/neo4j/import/ap-northeast-1-infra.corrected.nt
-load file /var/lib/neo4j/import/ap-northeast-1-cloudformation.corrected.nt
-load file /var/lib/neo4j/import/ap-northeast-1-messaging.corrected.nt2018-06-25 08:06:45.896+0000 INFO  Found 0 namespaces in the DB: {}
-load file /var/lib/neo4j/import/us-west-2-lambda.corrected.nt
-load file /var/lib/neo4j/import/us-west-2-infra.corrected.nt2018-06-25 08:07:45.269+0000 INFO  Found 0 namespaces in the DB: {}
-2018-06-25 08:07:45.288+0000 INFO  Successfully committed 2 triples. Total number of triples imported is 2
-2018-06-25 08:07:45.304+0000 INFO  Found 0 namespaces in the DB: {}
-2018-06-25 08:07:45.390+0000 INFO  Successfully committed 774 triples. Total number of triples imported is 774
-2018-06-25 08:07:45.402+0000 INFO  Found 0 namespaces in the DB: {}
-2018-06-25 08:07:45.411+0000 INFO  Successfully committed 2 triples. Total number of triples imported is 2
-2018-06-25 08:07:45.424+0000 INFO  Found 0 namespaces in the DB: {}
-2018-06-25 08:07:45.446+0000 INFO  Successfully committed 15 triples. Total number of triples imported is 15
-2018-06-25 08:07:45.461+0000 INFO  Found 0 namespaces in the DB: {}
-2018-06-25 08:07:45.495+0000 INFO  Successfully committed 13 triples. Total number of triples imported is 13
-
-load file /var/lib/neo4j/import/us-west-2-cloudformation.corrected.nt
-load file /var/lib/neo4j/import/us-west-2-messaging.corrected.nt
-load file /var/lib/neo4j/import/us-west-2-storage.corrected.nt
+load file /var/lib/neo4j/import/ap-southeast-2-cloudformation.corrected.nt
+No handlers could be found for logger "neo4j"
+... loaded
+load file /var/lib/neo4j/import/ap-southeast-2-infra.corrected.nt
+... loaded
+load file /var/lib/neo4j/import/ap-southeast-2-messaging.corrected.nt
+... loaded
+load file /var/lib/neo4j/import/ap-southeast-2-storage.corrected.nt
+... loaded
+load file /var/lib/neo4j/import/ap-southeast-2-lambda.corrected.nt
+... loaded
+<neo4j.DirectDriver object at 0x7f2f707fa190>
 neo4j console
 ```
-
-
-test
