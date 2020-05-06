@@ -218,6 +218,7 @@ def fix_db():
         # Names on ECS
         session.run("match (n:Containertask) set n.arn = n.name")
         session.run("match (n:Containertask) set n.name = apoc.text.replace(n.arn, '^.*?/', '')")
+        session.run("match (n:Containertask) set n.name = apoc.text.replace(n.ns1__arn, '^.*?/', '')")
         session.run("match (n:Containercluster) set n.arn = n.name")
         session.run("match (n:Containercluster) set n.name = apoc.text.replace(n.arn, '^.*?/', '')")
 
