@@ -215,6 +215,21 @@ def fix_db():
             merge   (a)-[:ns1__associationTo]->(s)
         """)
 
+        # Names on ECS
+        session.run("match (n:Containertask) set n.arn = n.name")
+        session.run("match (n:Containertask) set n.name = apoc.text.replace(n.arn, '^.*?/', '')")
+        session.run("match (n:Containercluster) set n.arn = n.name")
+        session.run("match (n:Containercluster) set n.name = apoc.text.replace(n.arn, '^.*?/', '')")
+
+        # Target Groups
+        session.run("match (n)<-[:ns3__applyOn]-(:Targetgroup) where not labels(n) set n:TargetgroupTarget")
+        session.run("""
+            match   (n:TargetgroupTarget),
+                    (p:Networkinterface)
+            where   n.uri = p.ns2__privateIP
+            merge   (n)-[:trafficTo]->(p)
+        """)
+
         # Names on SGs
         session.run("match (n:FirewallRule) set n.name=n.ns2__cidr")
         session.run("match (n:FirewallRule) where not exists(n.name) set n.name=n.ns1__source")
