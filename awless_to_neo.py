@@ -221,7 +221,7 @@ def fix_db():
         session.run("match (n:Containercluster) set n.arn = n.name")
         session.run("match (n:Containercluster) set n.name = apoc.text.replace(n.arn, '^.*?/', '')")
 
-        # Target Groups
+        # LBs & Target Groups
         session.run("match (n)<-[:ns3__applyOn]-(:Targetgroup) where not labels(n) set n:TargetgroupTarget")
         session.run("""
             match   (n:TargetgroupTarget),
@@ -229,10 +229,35 @@ def fix_db():
             where   n.uri = p.ns2__privateIP
             merge   (n)-[:trafficTo]->(p)
         """)
+        session.run("""
+            match   (n:Listener),
+                    (p:Targetgroup)
+            where   n.ns1__targetGroups = p.ns1__arn
+            merge   (n)-[:forwardsTo]->(p)
+        """)
+        session.run("match (n:Targetgroup) set n.name=n.ns1__name")
+        session.run("match (n:Loadbalancer) set n.name=n.ns1__name")
+        session.run("match (n:Listener) set n.name=n.ns2__protocol + ':' + n.ns2__port")
 
         # Names on SGs
         session.run("match (n:FirewallRule) set n.name=n.ns2__cidr")
         session.run("match (n:FirewallRule) where not exists(n.name) set n.name=n.ns1__source")
+
+        # Label public and Private Subnets
+        session.run("""
+            match   (s:Subnet)<-[:ns3__applyOn]-(rt:Routetable)-[:ns2__routes]->(r:Route)
+            where   r.ns2__cidr='0.0.0.0/0'
+                    and
+                    r.ns2__routeTargets =~ '.*igw-.*'
+            set     s:SubnetPublic
+        """)
+        session.run("""
+            match   (s:Subnet)<-[:ns3__applyOn]-(rt:Routetable)-[:ns2__routes]->(r:Route)
+            where   r.ns2__cidr='0.0.0.0/0'
+                    and
+                    r.ns2__routeTargets =~ '.*nat-.*'
+            set     s:SubnetPrivate
+        """)
 
         # Not super sure on "Grantee"
         session.run("match (n) where n.ns0__granteeType = 'CanonicalUser' and not labels(n) set n: Grantee")
