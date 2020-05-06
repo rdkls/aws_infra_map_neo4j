@@ -243,6 +243,14 @@ def fix_db():
         session.run("match (n:FirewallRule) set n.name=n.ns2__cidr")
         session.run("match (n:FirewallRule) where not exists(n.name) set n.name=n.ns1__source")
 
+        session.run("match (n:Function) set n.name=n.ns1__name")
+        session.run("""
+            match  (n)
+            where   n.uri =~ '^arn:aws:iam:.*:role/.*'
+            set     n:Role,
+                    n.name = apoc.text.replace(n.uri, '^.*?/', '')
+        """)
+
         # Label public and Private Subnets
         session.run("""
             match   (s:Subnet)<-[:ns3__applyOn]-(rt:Routetable)-[:ns2__routes]->(r:Route)
@@ -260,7 +268,7 @@ def fix_db():
         """)
 
         # Not super sure on "Grantee"
-        session.run("match (n) where n.ns0__granteeType = 'CanonicalUser' and not labels(n) set n: Grantee")
+        session.run("match (n) where n.ns0__granteeType = 'CanonicalUser' and not labels(n) set n:Grantee")
         session.run("match (n)<-[:ns0__grantee]-() where not labels(n) set n:Grantee")
 
         # Set node labels - based on node props
