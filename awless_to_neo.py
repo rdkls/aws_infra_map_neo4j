@@ -140,12 +140,11 @@ def fix_db():
         # (we hacked this on before so RDF import didn't fail)
         cypher = """
             match (n)
-            CALL apoc.create.setProperty(n,'name', replace(n.name, 'resource:', ''))
+            CALL apoc.create.setProperty(n, 'name', replace(n.name, 'resource:', ''))
             YIELD node
             RETURN node
         """
         session.run(cypher)
-
         cypher = """
             match (n)
             CALL apoc.create.setProperty(n, 'uri', replace(n.uri, 'resource:', ''))
@@ -154,8 +153,16 @@ def fix_db():
         """
         session.run(cypher)
 
-
-        # Set label based on ns1__type
+        # Set label based on ns0__type preferably
+        # then ns1 (the more-specific)
+        cypher = """
+            match (n)
+            where not labels(n)
+            CALL apoc.create.addLabels(n, [n.ns0__type])
+            YIELD node
+            RETURN node
+        """
+        session.run(cypher)
         cypher = """
             match (n)
             where not labels(n)
@@ -165,27 +172,20 @@ def fix_db():
         """
         session.run(cypher)
 
-        # Set label based on ns0__type
+        # Set Name on ns0__name preferably
+        # then ns1 (the more-specific)
         cypher = """
             match (n)
             where not labels(n)
-            CALL apoc.create.addLabels(n, [n.ns0__type])
-            YIELD node
-            RETURN node
-        """
-        session.run(cypher)
-
-        # Set Name
-        cypher = """
-            match (n)
-            CALL apoc.create.setProperty(n, 'name', n.ns1__name)
-            YIELD node
-            RETURN node
-        """
-        session.run(cypher)
-        cypher = """
-            match (n)
             CALL apoc.create.setProperty(n, 'name', n.ns0__name)
+            YIELD node
+            RETURN node
+        """
+        session.run(cypher)
+        cypher = """
+            match (n)
+            where not labels(n)
+            CALL apoc.create.setProperty(n, 'name', n.ns1__name)
             YIELD node
             RETURN node
         """
@@ -203,16 +203,21 @@ def fix_db():
         session.run("match (n) where n.uri =~ '^vol-.*' set n:Volume")
         session.run("match (n)<-[:ns0__role]-() where not labels(n) set n:Role")
         session.run("match (n)<-[:ns0__location]-(:Image) where not labels(n) set n:ImageLocation")
+        session.run("match (n)<-[:ns1__zone]-() where not labels(n) set n:Route53HostedZone")
+        session.run("match (n)<-[:ns1__associations]-() set n:RoutetableAssociation")
+        session.run("match (n)<-[:ns1__containersImages]-() where not labels(n) set n:Containerimage")
+
+        # Relate route table associations
+        session.run("""
+            match   (a:RoutetableAssociation),
+                    (s:Subnet)
+            where   a.ns1__value = s.ns1__id
+            merge   (a)-[:ns1__associationTo]->(s)
+        """)
 
         # Not super sure on "Grantee"
         session.run("match (n) where n.ns0__granteeType = 'CanonicalUser' and not labels(n) set n: Grantee")
         session.run("match (n)<-[:ns0__grantee]-() where not labels(n) set n:Grantee")
-
-
-        # Instances
-        # Incorrectly matches scalinggroup - [apply-on]
-        #cypher = "match (n) where n.uri =~ '^resource:i-.*' set n:Instance"
-        #session.run(cypher)
 
         # Set node labels - based on node props
         res = session.run('match (n) where n.`rdf:type` is not null return n')
