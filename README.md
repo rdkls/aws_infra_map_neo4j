@@ -14,7 +14,7 @@ docker run
     --env AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN \
     -p 80:7474 \
     -p 7687:7687 \
-    aws_infra_map
+    aws_infra_map_neo4j
 ```
 
 
