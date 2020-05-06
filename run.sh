@@ -10,6 +10,7 @@ if [ -z "$AWS_SECRET_ACCESS_KEY" ] ; then
 	AWS_REGION=`grep region ~/.aws/config | head -n1 | cut -d'=' -f 2 | sed 's/ //g'`
 fi
 docker rm -f neo4j_awless 2>/dev/null
+docker pull rdkls/aws_infra_map_neo4j
 docker run -ti \
     --name neo4j_awless \
     --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
