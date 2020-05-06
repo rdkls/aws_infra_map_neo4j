@@ -4,8 +4,6 @@ EXPOSE 7687
 
 # APOC + Neosemantics
 RUN echo "dbms.security.procedures.unrestricted=apoc.trigger.*,apoc.meta.*" >> /var/lib/neo4j/conf/neo4j.conf
-#RUN mkdir /plugins/
-#ADD --chown=neo4j:neo4j https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/4.0.0.0/apoc-4.0.0.0-all.jar /plugins/
 WORKDIR /var/lib/neo4j/plugins
 RUN wget --quiet https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/4.0.0.10/apoc-4.0.0.10-all.jar
 RUN wget --quiet https://github.com/neo4j-labs/neosemantics/releases/download/4.0.0.0/neosemantics-4.0.0.0.jar
