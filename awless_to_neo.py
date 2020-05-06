@@ -215,6 +215,10 @@ def fix_db():
             merge   (a)-[:ns1__associationTo]->(s)
         """)
 
+        # Names on SGs
+        session.run("match (n:FirewallRule) set n.name=n.ns2__cidr")
+        session.run("match (n:FirewallRule) where not exists(n.name) set n.name=n.ns1__source")
+
         # Not super sure on "Grantee"
         session.run("match (n) where n.ns0__granteeType = 'CanonicalUser' and not labels(n) set n: Grantee")
         session.run("match (n)<-[:ns0__grantee]-() where not labels(n) set n:Grantee")
