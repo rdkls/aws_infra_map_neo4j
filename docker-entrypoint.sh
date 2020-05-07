@@ -1,12 +1,12 @@
 #!/bin/bash
 set -m
 
-if [[ -z "$AWS_DEFAULT_REGION$AWS_TO_NEO4J_LIMIT_REGION" ]] ; then
+if [ -z "$AWS_DEFAULT_REGION" ] && [ -z "$AWS_TO_NEO4J_LIMIT_REGION" ] ; then
     echo 'AWS_DEFAULT_REGION or AWS_TO_NEO4J_LIMIT_REGION must be set'
     exit 1
 fi
 # Be kind and set default region if only limit was specified
-if [[ -z $AWS_DEFAULT_REGION ]] ; then
+if [[ -z "$AWS_DEFAULT_REGION" ]] ; then
     export AWS_DEFAULT_REGION=$AWS_TO_NEO4J_LIMIT_REGION
 fi
 if [[ -z "$NEO4J_AUTH" ]] ; then
