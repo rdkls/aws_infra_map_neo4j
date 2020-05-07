@@ -28,6 +28,7 @@ Useful Interactively to
 - Identify unused resources
 
 ## What are my s3 buckets, and which principals have what sort of access to them?
+
 ```
 MATCH (n:Bucket)
 optional match (n)-[r]-(p)
@@ -36,6 +37,16 @@ return n,r,p
 Here you can see just one principal (the main account) having full control privs on all buckets, which are in four regions:
 
 ![Bucket Regions](./doc/img/s3-regions.png)
+
+## Where do I have resources deployed
+```
+MATCH (n:Region)
+optional match (n)--(p)
+RETURN n,p LIMIT 500
+```
+Here you can see regions in dark green. Most resources concentrated in a primary, then a secondary, with some (probably unintentional/orphaned) resources in 2 others.
+
+![Bucket Regions](./doc/img/all-region.png)
 
 
 # Usage
