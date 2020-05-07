@@ -98,8 +98,7 @@ def correct_file(infile, region, debug):
     return outfile
 
 
-def load_to_neo4j(filenames):
-    # Load the corrected rdj files from neo4j/import, into the db
+def init_graph():
     d = GraphDatabase.driver('bolt://127.0.0.1:7687', auth=get_neo4j_auth(), encrypted=False)
     with d.session() as session:
         # Create required indexes
@@ -118,6 +117,11 @@ def load_to_neo4j(filenames):
             # Index already exists
             pass
 
+
+def load_to_neo4j(filenames):
+    # Load the corrected rdj files from neo4j/import, into the db
+    d = GraphDatabase.driver('bolt://127.0.0.1:7687', auth=get_neo4j_auth(), encrypted=False)
+    with d.session() as session:
         for fn in filenames:
             # use jbarrasa's plugin to load the now-correct rdf into neo4j
             # see https://github.com/jbarrasa/neosemantics
@@ -383,6 +387,8 @@ if '__main__' == __name__:
     parser.add_argument('--debug', action='store_true')
 
     args = parser.parse_args()
+
+    init_graph()
 
     if args.only_fix_db:
         print('i only fix the db!')
