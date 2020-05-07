@@ -29,15 +29,14 @@ Useful Interactively to
 
 ## What are my s3 buckets, and which principals have what sort of access to them?
 ```
-MATCH (s:Grant)
-CALL apoc.path.subgraphNodes(s, {
-    relationshipFilter: null,
-    minLevel: 1,
-    maxLevel: 3
-})
-YIELD node
-RETURN node
+MATCH (n:Bucket)
+optional match (n)-[r]-(p)
+return n,r,p
 ```
+Here you can see just one principal (the main account) having full control privs on all buckets, which are in four regions:
+
+![Bucket Regions](./doc/img/s3-regions.png)
+
 
 # Usage
 
