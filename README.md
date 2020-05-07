@@ -1,6 +1,10 @@
 # AWS Infra Map
 Load your AWS environment into a Neo4j DB
 
+# ToDo / Missing
+
+- CloudWatch Event Rules - currently not supported in awless. Without this we don't get Lambda triggers
+
 # Usage
 
 - `run.sh` will probably do what you want
@@ -132,4 +136,18 @@ load file /var/lib/neo4j/import/ap-southeast-2-lambda.corrected.nt
 ... loaded
 <neo4j.DirectDriver object at 0x7f2f707fa190>
 neo4j console
+```
+
+# Some Interesting Queries
+
+Find everything related to your SNS subscriptions, within 3 degrees of separation
+```
+MATCH (s:Subscription)
+CALL apoc.path.subgraphNodes(s, {
+    relationshipFilter: null,
+    minLevel: 1,
+    maxLevel: 3
+})
+YIELD node
+RETURN node
 ```
