@@ -326,6 +326,8 @@ def fix_db():
         # Not super sure on "Grantee"
         session.run("match (n) where n.ns0__granteeType = 'CanonicalUser' and not labels(n) set n:Grantee")
         session.run("match (n)<-[:ns0__grantee]-() where not labels(n) set n:Grantee")
+        session.run("match (n:Grantee) set n.name = n.ns0__name")
+        session.run("match (n:Grant) set n.name = n.ns0__permission")
 
         # Set node labels - based on node props
         res = session.run('match (n) where n.`rdf:type` is not null return n')
