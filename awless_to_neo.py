@@ -169,13 +169,28 @@ def fix_db():
         """
         session.run(cypher)
 
-        # Merge on cloud_id
+        # Merge on ns0 & ns1 cloud_id
+        # (don't do all in one query lest you break neo4j)
         cypher = """
             MATCH   (n),
                     (p)
             WHERE   exists(n.ns0__cloud_id)
                     and
                     n.ns0__cloud_id = p.ns0__cloud_id
+                    and
+                    id(n) < id(p)
+            WITH    [n,p] as nodes
+            CALL    apoc.refactor.mergeNodes(nodes)
+            YIELD   node
+            RETURN  node
+        """
+        session.run(cypher)
+        cypher = """
+            MATCH   (n),
+                    (p)
+            WHERE   exists(n.ns1__cloud_id)
+                    and
+                    n.ns1__cloud_id = p.ns1__cloud_id
                     and
                     id(n) < id(p)
             WITH    [n,p] as nodes
@@ -330,8 +345,11 @@ def fix_db():
         # Not super sure on "Grantee"
         session.run("match (n) where n.ns0__granteeType = 'CanonicalUser' and not labels(n) set n:Grantee")
         session.run("match (n)<-[:ns0__grantee]-() where not labels(n) set n:Grantee")
+        session.run("match (n)<-[:ns1__grantee]-() where not labels(n) set n:Grantee")
         session.run("match (n:Grantee) set n.name = n.ns0__name")
-        session.run("match (n:Grant) set n.name = n.ns0__permission")
+        session.run("match (n:Grantee) where n.name is null and n.ns1__name is not null set n.name = n.ns1__name")
+        session.run("match (n:Grant) where n.ns0__permission is not null set n.name = n.ns0__permission")
+        session.run("match (n:Grant) where n.ns1__permission is not null set n.name = n.ns1__permission")
 
         # Set node labels - based on node props
         res = session.run('match (n) where n.`rdf:type` is not null return n')
