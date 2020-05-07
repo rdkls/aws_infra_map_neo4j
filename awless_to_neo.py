@@ -75,6 +75,9 @@ def correct_file(infile, region, debug):
                 if re.match('<[^:]*>', obj):
                     obj = re.sub('<(.*)>', '<resource:\\1>', obj)
 
+                # For s3 grantees, for some reason they have this format which causes it to be discarded hence not linked to the grant ...
+                obj = re.sub('_:(.*)', '<resource:\\1>', obj)
+
                 # Trim ^^ and anything following (happens when type is specified - we don't care they're all strings
                 obj = re.sub("(.+)\^\^.*", '\\1', obj)
 
@@ -83,6 +86,13 @@ def correct_file(infile, region, debug):
 
                 # Replace <net-owl:*> with *
                 obj = re.sub("<net-owl:([^>]+)>", '"\\1"', obj)
+
+                # Move id to cloud_id; in cases where these are ARNs or UUIDs
+                # They won't get imported
+                # Hence we leave neo4j to set the node ID
+                # And move thse to their own prop "cloud_id" for later use/cleaning
+                # Replace <cloud:id> with <cloud:cloud_id>
+                pred = re.sub("<cloud:id>", "<cloud:cloud_id>", pred)
 
                 of.write('%s %s %s .\n' % (sub, pred, obj))
     return outfile
@@ -152,6 +162,22 @@ def fix_db():
             CALL apoc.create.setProperty(n, 'uri', replace(n.uri, 'resource:', ''))
             YIELD node
             RETURN node
+        """
+        session.run(cypher)
+
+        # Merge on cloud_id
+        cypher = """
+            MATCH   (n),
+                    (p)
+            WHERE   exists(n.ns0__cloud_id)
+                    and
+                    n.ns0__cloud_id = p.ns0__cloud_id
+                    and
+                    id(n) < id(p)
+            WITH    [n,p] as nodes
+            CALL    apoc.refactor.mergeNodes(nodes)
+            YIELD   node
+            RETURN  node
         """
         session.run(cypher)
 
@@ -330,6 +356,7 @@ def fix_db():
             'cloud:name',
             'cloud:keyName',
             'cloud:id',
+            'cloud:cloud_id',
             'cloud:permission',
             'uri',
         ]
