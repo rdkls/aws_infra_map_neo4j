@@ -387,7 +387,8 @@ def fix_db():
         for propname in propnames:
             session.run('match (n) where  n.`%s` is not null and n.name is null set n.name = n.`%s`' % (propname, propname))
 
-    print('... done')
+    print(' AAAAAAAAAARE YOU READY TO RUUUUUUUUUUMBLE ')
+    # By this point we hope the user is ready to rumble
 
 def get_all_regions():
     ec2 = boto3.client('ec2')
