@@ -1,9 +1,43 @@
 # AWS Infra Map
 Load your AWS environment into a Neo4j DB
 
+My [brief writeup on Medium](https://medium.com/@nick.p.doyle/using-neo4j-graph-database-to-map-your-aws-infrastructure-a81b1a49981b)
+
+**Update May 2020** now based on neo4j 4.0
+
+Components
+- Neo4j
+- [Awless](http://awless.io/) - for querying AWS and storing infra details in local [RDF](https://en.wikipedia.org/wiki/Resource_Description_Framework) files
+- Python script [`awless_to_neo.py`](./awless_to_neo.py) to
+  - Modify these RDF files so they won't choke neosemantics when it goes to load them into neo4j (mainly add :Labels to nodes without)
+  - Load RDF files into Graph
+  - Neaten Graph: .properties and :Labels, and set relationships e.g. route table associations
+- [Neosemantics](https://neo4j.com/docs/labs/nsmntx/current/) - for loading RDF from awless into graph
+- [APOC](https://neo4j.com/developer/neo4j-apoc/) - for powerful updating & querying of graph
+
 # ToDo / Missing
 
 - CloudWatch Event Rules - currently not supported in awless. Without this we don't get Lambda triggers
+- Prob heaps of other stuff
+- IAM assume roles
+
+# Some Use Cases
+
+Useful Interactively to
+- Quickly understand what's running in an unfamiliar account
+- Identify unused resources
+
+## What are my s3 buckets, and which principals have what sort of access to them?
+```
+MATCH (s:Grant)
+CALL apoc.path.subgraphNodes(s, {
+    relationshipFilter: null,
+    minLevel: 1,
+    maxLevel: 3
+})
+YIELD node
+RETURN node
+```
 
 # Usage
 
