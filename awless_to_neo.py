@@ -122,6 +122,8 @@ def load_to_neo4j(filenames):
 
 
 def fix_db():
+    print('Fixing the Graph DB Labels, Props and Relationships with a bunch of dody inferences .....')
+
     # Fix up the db for niceess - add node labels, set names
     d = GraphDatabase.driver('bolt://127.0.0.1:7687', auth=get_neo4j_auth(), encrypted=False)
     pprint(d)
@@ -152,6 +154,12 @@ def fix_db():
             RETURN node
         """
         session.run(cypher)
+
+        # AMIs and AMI Locations
+        # Need to do this before setting Label based on ns0__type
+        # Since AMIs have this field set to "machine"
+        session.run("match (n) where n.uri =~ '^ami-.*' set n:Ami")
+        session.run("match (n)<-[:ns0__location]-(:Ami) where not labels(n) set n:AmiLocation")
 
         # Set label based on ns0__type preferably
         # then ns1 (the more-specific)
@@ -205,7 +213,6 @@ def fix_db():
         session.run("match (n)<-[:ns0__location]-(:Image) where not labels(n) set n:ImageLocation")
         session.run("match (n)<-[:ns1__zone]-() where not labels(n) set n:Route53HostedZone")
         session.run("match (n)<-[:ns1__associations]-() set n:RoutetableAssociation")
-        session.run("match (n)<-[:ns1__containersImages]-() where not labels(n) set n:Containerimage")
 
         # Relate route table associations
         session.run("""
@@ -215,12 +222,33 @@ def fix_db():
             merge   (a)-[:ns1__associationTo]->(s)
         """)
 
-        # Names on ECS
+        # ECS
+        session.run("match (n)<-[:ns1__containersImages]-() where (not labels(n) or n:KeyValue) set n:Containerimage")
         session.run("match (n:Containertask) set n.arn = n.name")
-        session.run("match (n:Containertask) set n.name = apoc.text.replace(n.arn, '^.*?/', '')")
-        session.run("match (n:Containertask) set n.name = apoc.text.replace(n.ns1__arn, '^.*?/', '')")
-        session.run("match (n:Containercluster) set n.arn = n.name")
+        session.run("match (n:Container) where exists(n.ns0__name) set n.name = n.ns0__name")
+        session.run("match (n:Containertask) where exists(n.arn) set n.name = apoc.text.replace(n.arn, '^.*?/', '')")
+        session.run("match (n:Containertask) where exists(n.ns1__arn) set n.name = apoc.text.replace(n.ns1__arn, '^.*?/', '')")
+        session.run("match (n:Containertask) where exists(n.ns0__arn) set n.name = apoc.text.replace(n.ns0__arn, '^.*?/', '')")
+        session.run("match (n:Containercluster) where exists(n.name) set n.arn = n.name")
+        session.run("match (n:Containercluster) where exists(n.ns0__arn) set n.arn = n.ns0__arn")
         session.run("match (n:Containercluster) set n.name = apoc.text.replace(n.arn, '^.*?/', '')")
+
+        # SNS & SQS
+        session.run("match (n:Topic) set n:SnsTopic")
+        session.run("match (n)<-[:ns0__topic]-() set n:SnsTopic")
+        session.run("match (n) where n:Topic CALL apoc.create.removeLabels(n, ['Topic']) YIELD node return node")
+        session.run("match (n:SnsTopic) set n.name = apoc.text.replace(n.uri, '^.*:', '')")
+        session.run("match (n:SnsTopic) set n.name = apoc.text.replace(n.name, '^.*:', '')")
+        session.run("match (n:Subscription) set n.name = apoc.text.replace(n.name, '^.*:', '')")
+        # Link up SNS Subscriptions to SQS Queues
+        session.run("match (s:Subscription), (q) where s.uri = q.ns0__arn merge (s)-[:subscription]->(q)")
+        session.run("match (n:Queue) set n.name = apoc.text.replace(n.name, '^.*:', '')")
+
+        # Lambdas (:Function)
+        session.run("match (n:Function) set n:Lambda")
+        session.run("match (n) where n:Function CALL apoc.create.removeLabels(n, ['Function']) YIELD node return node")
+        session.run("match (n:Lambda) set n.name=n.ns0__name")
+
 
         # LBs & Target Groups
         session.run("match (n)<-[:ns3__applyOn]-(:Targetgroup) where not labels(n) set n:TargetgroupTarget")
@@ -244,7 +272,6 @@ def fix_db():
         session.run("match (n:FirewallRule) set n.name=n.ns2__cidr")
         session.run("match (n:FirewallRule) where not exists(n.name) set n.name=n.ns1__source")
 
-        session.run("match (n:Function) set n.name=n.ns1__name")
         session.run("""
             match  (n)
             where   n.uri =~ '^arn:aws:iam:.*:role/.*'
@@ -267,6 +294,8 @@ def fix_db():
                     r.ns2__routeTargets =~ '.*nat-.*'
             set     s:SubnetPrivate
         """)
+
+        session.run("match (n:Queue) set n.name = apoc.text.replace(n.ns0__arn, '^.*?/', '')")
 
         # Not super sure on "Grantee"
         session.run("match (n) where n.ns0__granteeType = 'CanonicalUser' and not labels(n) set n:Grantee")
@@ -306,6 +335,8 @@ def fix_db():
         ]
         for propname in propnames:
             session.run('match (n) where  n.`%s` is not null and n.name is null set n.name = n.`%s`' % (propname, propname))
+
+    print('... done')
 
 def get_all_regions():
     ec2 = boto3.client('ec2')
