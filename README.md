@@ -70,6 +70,15 @@ docker run
     rdkls/aws_infra_map_neo4j
 ```
 
+## Integrate with other frontends
+
+Another cool thing you can do once you have the data is point other tools such as [Linkurious](https://linkurio.us/), or the new (but basic) (but free!) [GraphXR](https://www.kineviz.com/) at it.
+
+I think GraphXR is looking pretty cool. A bit clunky, but looks sweet, and loving the 3d effect. IMO this sort of interface, "just like in the movies" where we're exploring data in 3d, will have big benefits in future. Here's an example of pointing GraphXR at my localhost. Basically you go there, create a new project, point it at your local neo4j instance, "configure search index" and do some sort of search, to get things showing up.
+
+![GraphXR](./doc/img/graphxr2.png)
+
+
 
 # Environment Variables
 |Name|Format|Example|Purpose
